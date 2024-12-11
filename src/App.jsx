@@ -8,6 +8,7 @@ function App() {
   const [monthlyPayment, setMonthlyPayment] = useState(null)
   const [totalPayment, setTotalPayment] = useState(null)
   const [errors, setErrors] = useState({})
+  const [paymentType, setPaymentType] = useState('repayment')
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -18,19 +19,30 @@ function App() {
     setErrors(newErrors)
     if (Object.keys(newErrors).length > 0) return
 
-    const principal = parseFloat(amount)
+    const principal = parseFloat(amount.replace(/,/g, ''))
     const monthlyRate = parseFloat(rate) / 100 / 12
     const numberOfPayments = parseInt(term) * 12
-    const monthly = (principal * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -numberOfPayments))
-    const total = monthly * numberOfPayments
+    let monthly, total
+
+    if (paymentType === 'repayment') {
+      monthly = (principal * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -numberOfPayments))
+      total = monthly * numberOfPayments
+    } else {
+      monthly = principal * monthlyRate
+      total = monthly * numberOfPayments
+    }
 
     setMonthlyPayment(monthly.toFixed(2))
     setTotalPayment(total.toFixed(2))
   }
 
+  const formatNumber = (num) => {
+    return new Intl.NumberFormat().format(num)
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-100">
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow-md w-full max-w-md">
+      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-md w-full max-w-md">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl text-slate-900 font-bold">Mortgage Calculator</h1>
           <div>
@@ -44,18 +56,18 @@ function App() {
                 setTotalPayment(null)
                 setErrors({})
               }}
-              className="text-slate-700 hover:underline focus:outline-none"
+              className="text-red-500 hover:text-red-700"
             >
-              Clear All
+              Reset
             </button>
           </div>
         </div>
         <div className="mb-4">
           <label className="block text-slate-700">Mortgage Amount</label>
           <input
-            type="number"
+            type="text"
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            onChange={(e) => setAmount(formatNumber(e.target.value.replace(/,/g, '')))}
             className="w-full p-2 border border-slate-300 rounded mt-1 focus:outline-none focus:ring-1 focus:ring-lime"
           />
           {errors.amount && <p className="text-red text-sm">{errors.amount}</p>}
@@ -92,6 +104,33 @@ function App() {
             {errors.rate && <p className="text-red text-sm">{errors.rate}</p>}
           </div>
         </div>
+        <div className="mb-4">
+          <label className="block text-slate-700">Payment Type</label>
+          <div className="flex flex-col mt-1">
+            <label className={`w-full text-slate-700 p-2 border ${paymentType === 'repayment' ? 'border-lime' : 'border-slate-700'} rounded mb-2 text-lg`}>
+              <input
+                type="radio"
+                name="paymentType"
+                value="repayment"
+                checked={paymentType === 'repayment'}
+                onChange={(e) => setPaymentType(e.target.value)}
+                className="mr-2 accent-lime"
+              />
+              Repayment
+            </label>
+            <label className={`w-full text-slate-700 p-2 border ${paymentType === 'interestOnly' ? 'border-lime' : 'border-slate-700'} rounded text-lg`}>
+              <input
+                type="radio"
+                name="paymentType"
+                value="interestOnly"
+                checked={paymentType === 'interestOnly'}
+                onChange={(e) => setPaymentType(e.target.value)}
+                className="mr-2 accent-lime"
+              />
+              Interest Only
+            </label>
+          </div>
+        </div>
         <button
           type="submit"
           className="w-full bg-lime text-slate-900 font-bold p-2 rounded focus:outline-none focus:ring-1 focus:ring-lime"
@@ -101,8 +140,8 @@ function App() {
         {monthlyPayment && (
           <div className="mt-4">
             <h2 className="text-xl font-bold">Results</h2>
-            <p>Monthly Payment: ${monthlyPayment}</p>
-            <p>Total Payment: ${totalPayment}</p>
+            <p>Monthly Payment: ${formatNumber(monthlyPayment)}</p>
+            <p>Total Payment: ${formatNumber(totalPayment)}</p>
           </div>
         )}
       </form>
